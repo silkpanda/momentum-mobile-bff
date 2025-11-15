@@ -2,29 +2,31 @@ import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
 // --- THIS IS THE FIX ---
-// The import path is now all lowercase to match
-// the file name 'apiclient.ts' on your disk.
-import { checkApiHealth } from './lib/apiclient.js';
+// Changed to uppercase 'C' to match the file name
+import { checkApiHealth } from './lib/apiClient.js';
 // --- END OF FIX ---
+import { getKioskData } from './controllers/kioskController.js';
 
 // Create the express app
 const app = express();
 
 // --- Global Middleware ---
-
-// Enable CORS (Cross-Origin Resource Sharing)
 app.use(cors());
-
-// Enable JSON body parsing
 app.use(express.json());
 
-// --- Basic Health Check Route ---
+// --- API Routes ---
+
+// Health check for the BFF itself
 app.get('/', (req, res) => {
   res.status(200).json({
     status: 'success',
     message: 'Momentum Mobile BFF is running!',
   });
 });
+
+// --- NEW KIOSK ENDPOINT (STEP 3.1) ---
+// This is the main endpoint for the mobile app
+app.get('/api/v1/kiosk-data', getKioskData);
 
 // --- Start the Server ---
 const PORT = process.env.PORT || 3002;
@@ -33,7 +35,6 @@ app.listen(PORT, () => {
   console.log(`[momentum-mobile-bff] Server is running on port ${PORT} 🚀`);
 
   // Run a health check against the internal API on startup
-  // We use an IIFE (Immediately Invoked Function Expression) to run async code
   (async () => {
     console.log(
       '[momentum-mobile-bff] Pinging internal API for health check...',

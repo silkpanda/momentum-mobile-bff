@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { apiClient } from '../lib/apiclient.js';
+// --- THIS IS THE FIX ---
+// Changed to uppercase 'C' to match the file name
+import { apiClient } from '../lib/apiClient.js';
+// --- END OF FIX ---
 import { AxiosError } from 'axios';
 
 /**
