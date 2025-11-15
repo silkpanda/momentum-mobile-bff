@@ -7,7 +7,12 @@ import 'dotenv/config';
  * This is the ONLY service that talks to the database.
  * Both the Web BFF and Mobile BFF call this service.
  */
-const API_BASE_URL = process.env.MOMENTUM_API_URL || 'http://localhost:3001';
+// --- FIX 1: Changed port from 3001 to 3000 ---
+const API_BASE_URL = process.env.MOMENTUM_API_URL || 'http://localhost:3000';
+
+// --- NEW DEBUG LOG (as requested) ---
+console.log(`[apiClient] Initialized. Internal API base URL is: ${API_BASE_URL}`);
+// --- END DEBUG LOG ---
 
 /**
  * A pre-configured Axios instance for communicating with the
@@ -33,8 +38,10 @@ export const apiClient = axios.create({
  * @returns {Promise<boolean>} True if the API is reachable, false otherwise.
  */
 export const checkApiHealth = async (): Promise<boolean> => {
+  const healthCheckUrl = `${API_BASE_URL}/api/health`;
   try {
-    const response = await apiClient.get('/');
+    // --- FIX 2: Changed endpoint from '/' to '/api/health' ---
+    const response = await apiClient.get('/api/health');
     if (response.status === 200) {
       console.log(
         '[apiClient] momentum-api health check successful.',
@@ -44,11 +51,14 @@ export const checkApiHealth = async (): Promise<boolean> => {
     }
     return false;
   } catch (error) {
-    // --- THIS IS THE FIX ---
+    // --- NEW DEBUG LOG (as requested) ---
+    console.error(`[apiClient] Health check FAILED. Attempted to connect to: ${healthCheckUrl}`);
+    // --- END DEBUG LOG ---
+    
     // We must check if 'error' is an 'Error' object before accessing .message
     if (error instanceof Error) {
       console.error(
-        '[apiClient] Failed to connect to momentum-api:',
+        '[apiClient] Connection error message:',
         error.message,
       );
     } else {
@@ -59,6 +69,5 @@ export const checkApiHealth = async (): Promise<boolean> => {
       );
     }
     return false;
-    // --- END OF FIX ---
   }
 };
