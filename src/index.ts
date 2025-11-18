@@ -8,6 +8,7 @@ import { getKioskData } from './controllers/kioskController.js';
 import { getHouseholdById } from './controllers/householdController.js';
 import { completeTask } from './controllers/taskController.js';
 import { getRewards, purchaseReward } from './controllers/storeController.js';
+import { login } from './controllers/authController.js'; // <--- NEW IMPORT
 
 // Admin Controllers (FLAT IMPORT)
 import * as taskAdmin from './controllers/taskAdminController.js';
@@ -32,6 +33,11 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
+// AUTHENTICATION (Public)
+// ==========================================
+app.post('/api/v1/auth/login', login); // <--- NEW ROUTE
+
+// ==========================================
 // PHASE 1 & 2: KIOSK & FAMILY VIEW (Emotional)
 // ==========================================
 
@@ -54,20 +60,20 @@ app.post('/api/v1/rewards/:id/purchase', purchaseReward);
 // ==========================================
 
 // --- Task Administration ---
-app.get('/api/v1/admin/tasks/pending', taskAdmin.getPendingTasks); // The Approval Queue
-app.post('/api/v1/admin/tasks/:id/approve', taskAdmin.approveTask); // Approve Action
+app.get('/api/v1/admin/tasks/pending', taskAdmin.getPendingTasks);
+app.post('/api/v1/admin/tasks/:id/approve', taskAdmin.approveTask);
 app.post('/api/v1/admin/tasks', taskAdmin.createTask);
-app.put('/api/v1/admin/tasks/:id', taskAdmin.updateTask); // Proxies to PATCH
+app.put('/api/v1/admin/tasks/:id', taskAdmin.updateTask);
 app.delete('/api/v1/admin/tasks/:id', taskAdmin.deleteTask);
 
 // --- Store Administration ---
 app.post('/api/v1/admin/store-items', storeAdmin.createStoreItem);
-app.put('/api/v1/admin/store-items/:id', storeAdmin.updateStoreItem); // Proxies to PATCH
+app.put('/api/v1/admin/store-items/:id', storeAdmin.updateStoreItem);
 app.delete('/api/v1/admin/store-items/:id', storeAdmin.deleteStoreItem);
 
 // --- Member Administration ---
 app.post('/api/v1/admin/households/:id/members', memberAdmin.addMember);
-app.put('/api/v1/admin/households/:id/members/:memberId', memberAdmin.updateMember); // Proxies to PATCH
+app.put('/api/v1/admin/households/:id/members/:memberId', memberAdmin.updateMember);
 app.delete('/api/v1/admin/households/:id/members/:memberId', memberAdmin.removeMember);
 
 
@@ -77,7 +83,6 @@ const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => {
   console.log(`[momentum-mobile-bff] Server is running on port ${PORT} 🚀`);
 
-  // Run a health check against the internal API on startup
   (async () => {
     console.log(
       '[momentum-mobile-bff] Pinging internal API for health check...',
@@ -86,5 +91,4 @@ app.listen(PORT, () => {
   })();
 });
 
-// Export the app (useful for serverless functions later)
 export default app;
