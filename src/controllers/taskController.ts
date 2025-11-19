@@ -5,6 +5,7 @@ import { AxiosError } from 'axios';
 /**
  * @desc    Mark a task as complete (Pending Approval)
  * @route   POST /api/v1/tasks/:id/complete
+ * @access  Private (Requires JWT)
  */
 export const completeTask = async (
   req: Request,
@@ -13,6 +14,8 @@ export const completeTask = async (
 ) => {
   try {
     const { id } = req.params;
+
+    // 1. Get the auth token
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
@@ -29,7 +32,8 @@ export const completeTask = async (
       });
     }
 
-    // Forward body (contains memberId) to Core API
+    // 2. Call the internal 'momentum-api'
+    // FIX: We must forward req.body (which contains memberId) to the core API.
     const response = await apiClient.post(
       `/api/v1/tasks/${id}/complete`,
       req.body,
@@ -40,12 +44,22 @@ export const completeTask = async (
       },
     );
 
+    // 3. Return the updated task data
     res.status(200).json(response.data);
   } catch (error) {
     if (error instanceof AxiosError && error.response) {
       return res.status(error.response.status).json(error.response.data);
     }
-    console.error(`[taskController] Error completing task:`, error);
+
+    if (error instanceof Error) {
+      console.error(
+        `[taskController] Error completing task ${req.params.id}:`,
+        error.message,
+      );
+    } else {
+      console.error('[taskController] Unexpected unknown error:', error);
+    }
+
     res.status(500).json({
       status: 'error',
       message: 'Internal Server Error in BFF.',
