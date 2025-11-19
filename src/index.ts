@@ -6,9 +6,10 @@ import { checkApiHealth } from './lib/apiClient.js';
 // Kiosk Controllers
 import { getKioskData } from './controllers/kioskController.js';
 import { getHouseholdById } from './controllers/householdController.js';
-import { completeTask } from './controllers/taskController.js';
+// FIX: Import both functions
+import { completeTask, getTasks } from './controllers/taskController.js';
 import { getRewards, purchaseReward } from './controllers/storeController.js';
-import { login } from './controllers/authController.js'; // <--- NEW IMPORT
+import { login } from './controllers/authController.js';
 
 // Admin Controllers (FLAT IMPORT)
 import * as taskAdmin from './controllers/taskAdminController.js';
@@ -35,7 +36,7 @@ app.get('/', (req, res) => {
 // ==========================================
 // AUTHENTICATION (Public)
 // ==========================================
-app.post('/api/v1/auth/login', login); // <--- NEW ROUTE
+app.post('/api/v1/auth/login', login);
 
 // ==========================================
 // PHASE 1 & 2: KIOSK & FAMILY VIEW (Emotional)
@@ -46,6 +47,9 @@ app.get('/api/v1/household/:id', getHouseholdById);
 
 // Step 2.1: Kiosk Data Aggregation
 app.get('/api/v1/kiosk-data', getKioskData);
+
+// NEW: Get Tasks List (Fixes 404)
+app.get('/api/v1/tasks', getTasks);
 
 // Step 2.3: Task Completion (Child Action)
 app.post('/api/v1/tasks/:id/complete', completeTask);

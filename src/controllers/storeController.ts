@@ -4,7 +4,7 @@ import { AxiosError } from 'axios';
 
 /**
  * @desc    Get all available rewards for the household
- * @route   GET /api/v1/rewards
+ * @route   GET /api/v1/store-items
  * @access  Private (Requires JWT)
  */
 export const getRewards = async (
@@ -14,9 +14,6 @@ export const getRewards = async (
 ) => {
   try {
     const authHeader = req.headers.authorization;
-    // We might need to pass a householdId query param if the user is in multiple households,
-    // but usually the core API infers context from the user/profile or defaults.
-    // For now, we'll forward query params.
     const queryParams = req.query;
 
     if (!authHeader) {
@@ -26,7 +23,8 @@ export const getRewards = async (
       });
     }
 
-    const response = await apiClient.get('/api/v1/rewards', {
+    // FIX: Use the Core API's canonical '/api/v1/store-items' route for fetching
+    const response = await apiClient.get('/api/v1/store-items', {
       headers: {
         Authorization: authHeader,
       },
@@ -41,7 +39,7 @@ export const getRewards = async (
 
 /**
  * @desc    Purchase a reward (deduct points)
- * @route   POST /api/v1/rewards/:id/purchase
+ * @route   POST /api/v1/store-items/:id/purchase
  * @access  Private (Requires JWT)
  */
 export const purchaseReward = async (
@@ -67,10 +65,10 @@ export const purchaseReward = async (
       });
     }
 
-    // Forward the purchase request to the core API
+    // FIX: Forward the purchase request to the Core API's correct route
     const response = await apiClient.post(
-      `/api/v1/rewards/${id}/purchase`,
-      {}, // Body can be empty if only ID is needed, or pass req.body if quantity is needed
+      `/api/v1/store-items/${id}/purchase`, // Correct endpoint name
+      req.body, // Pass the request body (contains memberId from mobile client)
       {
         headers: {
           Authorization: authHeader,

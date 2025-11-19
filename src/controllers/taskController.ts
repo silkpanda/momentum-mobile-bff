@@ -5,7 +5,6 @@ import { AxiosError } from 'axios';
 /**
  * @desc    Mark a task as complete (Pending Approval)
  * @route   POST /api/v1/tasks/:id/complete
- * @access  Private (Requires JWT)
  */
 export const completeTask = async (
   req: Request,
@@ -14,8 +13,6 @@ export const completeTask = async (
 ) => {
   try {
     const { id } = req.params;
-
-    // 1. Get the auth token
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
@@ -32,12 +29,10 @@ export const completeTask = async (
       });
     }
 
-    // 2. Call the internal 'momentum-api'
-    // The core API handles the logic of updating status to 'PendingApproval'
-    // and triggering any notifications.
+    // Forward body (contains memberId) to Core API
     const response = await apiClient.post(
       `/api/v1/tasks/${id}/complete`,
-      {}, // Empty body for this action
+      req.body,
       {
         headers: {
           Authorization: authHeader,
@@ -45,22 +40,51 @@ export const completeTask = async (
       },
     );
 
-    // 3. Return the updated task data
     res.status(200).json(response.data);
   } catch (error) {
     if (error instanceof AxiosError && error.response) {
       return res.status(error.response.status).json(error.response.data);
     }
+    console.error(`[taskController] Error completing task:`, error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal Server Error in BFF.',
+    });
+  }
+};
 
-    if (error instanceof Error) {
-      console.error(
-        `[taskController] Error completing task ${req.params.id}:`,
-        error.message,
-      );
-    } else {
-      console.error('[taskController] Unexpected unknown error:', error);
+/**
+ * @desc    Get all tasks for the household
+ * @route   GET /api/v1/tasks
+ */
+export const getTasks = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({
+        status: 'fail',
+        message: 'No authorization token provided.',
+      });
     }
 
+    // Call Core API to get tasks
+    const response = await apiClient.get('/api/v1/tasks', {
+      headers: {
+        Authorization: authHeader,
+      },
+    });
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    if (error instanceof AxiosError && error.response) {
+      return res.status(error.response.status).json(error.response.data);
+    }
+    console.error('[taskController] Error fetching tasks:', error);
     res.status(500).json({
       status: 'error',
       message: 'Internal Server Error in BFF.',
