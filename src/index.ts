@@ -17,6 +17,9 @@ import { login } from './controllers/authController.js';
 import * as taskAdmin from './controllers/taskAdminController.js';
 import * as storeAdmin from './controllers/storeAdminController.js';
 import * as memberAdmin from './controllers/memberAdminController.js';
+import * as questController from './controllers/questController.js';
+import * as routineController from './controllers/routineController.js';
+import * as mealController from './controllers/mealController.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -36,10 +39,19 @@ const io = new Server(httpServer, {
 
 // 2. Connect to Core API (as a client)
 const CORE_API_URL = process.env.MOMENTUM_API_URL || 'http://localhost:3000';
-const coreSocket = ClientSocket(CORE_API_URL);
+const coreSocket = ClientSocket(CORE_API_URL, {
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
+});
 
 coreSocket.on('connect', () => {
   console.log(`[BFF] Connected to Core API WebSocket at ${CORE_API_URL}`);
+});
+
+coreSocket.on('connect_error', (err) => {
+  console.error('[BFF] Core API Socket Connection Error:', err.message);
 });
 
 coreSocket.on('task_updated', (data) => {
@@ -50,6 +62,40 @@ coreSocket.on('task_updated', (data) => {
   console.log('[BFF] ✅ Event re-emitted to mobile clients');
 });
 
+// Relay 'quest_updated' events to mobile clients
+coreSocket.on('quest_updated', (data) => {
+  console.log('[BFF] Received quest_updated from Core, relaying to clients:', data);
+  io.emit('quest_updated', data);
+});
+
+// Relay 'routine_updated' events to mobile clients
+coreSocket.on('routine_updated', (data) => {
+  console.log('[BFF] Received routine_updated from Core, relaying to clients:', data);
+  io.emit('routine_updated', data);
+});
+
+// Relay 'member_points_updated' events
+coreSocket.on('member_points_updated', (data) => {
+  console.log('[BFF] Received member_points_updated from Core, relaying to clients:', data);
+  io.emit('member_points_updated', data);
+});
+
+// --- MEAL PLANNER ROUTES ---
+app.get('/api/v1/meals/recipes', mealController.getRecipes);
+app.post('/api/v1/meals/recipes', mealController.createRecipe);
+app.put('/api/v1/meals/recipes/:id', mealController.updateRecipe);
+app.delete('/api/v1/meals/recipes/:id', mealController.deleteRecipe);
+
+app.get('/api/v1/meals/restaurants', mealController.getRestaurants);
+app.post('/api/v1/meals/restaurants', mealController.createRestaurant);
+app.put('/api/v1/meals/restaurants/:id', mealController.updateRestaurant);
+app.delete('/api/v1/meals/restaurants/:id', mealController.deleteRestaurant);
+
+app.get('/api/v1/meals/plans', mealController.getMealPlans);
+app.post('/api/v1/meals/plans', mealController.createMealPlan);
+app.delete('/api/v1/meals/plans/:id', mealController.deleteMealPlan);
+
+// --- SOCKET.IO ---
 io.on('connection', (socket) => {
   console.log('[BFF] 📱 Mobile Client connected:', socket.id);
   console.log('[BFF] Client transport:', socket.conn.transport.name);
@@ -107,6 +153,26 @@ app.delete('/api/v1/admin/store-items/:id', storeAdmin.deleteStoreItem);
 app.post('/api/v1/admin/households/:id/members', memberAdmin.addMember);
 app.put('/api/v1/admin/households/:id/members/:memberId', memberAdmin.updateMember);
 app.delete('/api/v1/admin/households/:id/members/:memberId', memberAdmin.removeMember);
+
+// Quest Routes
+app.get('/api/v1/quests', questController.getAllQuests);
+app.post('/api/v1/quests/:id/claim', questController.claimQuest);
+app.post('/api/v1/quests/:id/complete', questController.completeQuest);
+
+// Admin Quest Routes
+app.post('/api/v1/admin/quests', questController.createQuest);
+app.delete('/api/v1/admin/quests/:id', questController.deleteQuest);
+app.post('/api/v1/admin/quests/:id/approve', questController.approveQuest);
+
+// Routine Routes
+app.get('/api/v1/routines', routineController.getAllRoutines);
+app.get('/api/v1/routines/member/:memberId', routineController.getMemberRoutines);
+app.post('/api/v1/routines/:id/complete', routineController.completeRoutine);
+
+// Admin Routine Routes
+app.post('/api/v1/admin/routines', routineController.createRoutine);
+app.put('/api/v1/admin/routines/:id', routineController.updateRoutine);
+app.delete('/api/v1/admin/routines/:id', routineController.deleteRoutine);
 
 const PORT = process.env.PORT || 3002;
 
