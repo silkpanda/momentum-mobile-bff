@@ -24,6 +24,11 @@ import * as mealController from './controllers/mealController.js';
 const app = express();
 const httpServer = createServer(app);
 
+// Middleware
+app.use(cors());
+app.use(express.json()); // Parse JSON request bodies
+app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+
 // 1. Setup Socket.io Server (for Mobile App to connect to)
 const io = new Server(httpServer, {
   cors: {

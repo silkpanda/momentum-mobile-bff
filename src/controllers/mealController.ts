@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { apiClient } from '../lib/apiClient';
+import { apiClient } from '../lib/apiClient.js';
 
 // --- RECIPES ---
 
@@ -89,6 +89,7 @@ export const getRestaurants = async (req: Request, res: Response) => {
 
 export const createRestaurant = async (req: Request, res: Response) => {
     try {
+        console.log('[BFF] Create Restaurant - Request Body:', JSON.stringify(req.body, null, 2));
         const response = await apiClient.post('/api/v1/meals/restaurants', req.body, {
             headers: { Authorization: req.headers.authorization }
         });
