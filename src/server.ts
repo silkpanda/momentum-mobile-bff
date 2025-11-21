@@ -40,6 +40,11 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'momentum-mobile-bff' });
 });
 
+// Root route for Render health checks
+app.get('/', (req, res) => {
+    res.json({ status: 'ok', service: 'momentum-mobile-bff', version: '1.0.0' });
+});
+
 // Routes
 app.use('/mobile-bff/auth', authRoutes);
 app.use('/mobile-bff/dashboard', dashboardRoutes);
