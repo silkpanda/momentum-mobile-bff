@@ -19,10 +19,10 @@ const proxy = async (req: any, res: any, path: string, method: string = 'GET') =
 };
 
 // Restaurants
-router.get('/restaurants', (req, res) => proxy(req, res, '/restaurants'));
-router.post('/restaurants', (req, res) => proxy(req, res, '/restaurants', 'POST'));
-router.put('/restaurants/:id', (req, res) => proxy(req, res, `/restaurants/${req.params.id}`, 'PUT'));
-router.delete('/restaurants/:id', (req, res) => proxy(req, res, `/restaurants/${req.params.id}`, 'DELETE'));
+router.get('/restaurants', (req, res) => proxy(req, res, '/meals/restaurants'));
+router.post('/restaurants', (req, res) => proxy(req, res, '/meals/restaurants', 'POST'));
+router.put('/restaurants/:id', (req, res) => proxy(req, res, `/meals/restaurants/${req.params.id}`, 'PUT'));
+router.delete('/restaurants/:id', (req, res) => proxy(req, res, `/meals/restaurants/${req.params.id}`, 'DELETE'));
 
 // Meals
 router.get('/meals', (req, res) => proxy(req, res, '/meals'));
