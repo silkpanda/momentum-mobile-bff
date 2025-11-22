@@ -19,15 +19,15 @@ const proxy = async (req: any, res: any, path: string, method: string = 'GET') =
 };
 
 // Restaurants
-router.get('/restaurants', (req, res) => proxy(req, res, '/api/v1/meals/restaurants'));
-router.post('/restaurants', (req, res) => proxy(req, res, '/api/v1/meals/restaurants', 'POST'));
-router.put('/restaurants/:id', (req, res) => proxy(req, res, `/api/v1/meals/restaurants/${req.params.id}`, 'PUT'));
-router.delete('/restaurants/:id', (req, res) => proxy(req, res, `/api/v1/meals/restaurants/${req.params.id}`, 'DELETE'));
+router.get('/restaurants', (req, res) => proxy(req, res, '/meals/restaurants'));
+router.post('/restaurants', (req, res) => proxy(req, res, '/meals/restaurants', 'POST'));
+router.put('/restaurants/:id', (req, res) => proxy(req, res, `/meals/restaurants/${req.params.id}`, 'PUT'));
+router.delete('/restaurants/:id', (req, res) => proxy(req, res, `/meals/restaurants/${req.params.id}`, 'DELETE'));
 
 // Meals (Recipes)
-router.get('/meals', (req, res) => proxy(req, res, '/api/v1/meals/recipes'));
-router.post('/meals', (req, res) => proxy(req, res, '/api/v1/meals/recipes', 'POST'));
-router.put('/meals/:id', (req, res) => proxy(req, res, `/api/v1/meals/recipes/${req.params.id}`, 'PUT'));
-router.delete('/meals/:id', (req, res) => proxy(req, res, `/api/v1/meals/recipes/${req.params.id}`, 'DELETE'));
+router.get('/meals', (req, res) => proxy(req, res, '/meals/recipes'));
+router.post('/meals', (req, res) => proxy(req, res, '/meals/recipes', 'POST'));
+router.put('/meals/:id', (req, res) => proxy(req, res, `/meals/recipes/${req.params.id}`, 'PUT'));
+router.delete('/meals/:id', (req, res) => proxy(req, res, `/meals/recipes/${req.params.id}`, 'DELETE'));
 
 export default router;
