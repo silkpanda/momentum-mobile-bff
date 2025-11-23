@@ -96,8 +96,8 @@ const API_BASE_DOMAIN = API_BASE_URL.replace('/api/v1', '');
 app.use('/mobile-bff/store', createProxyMiddleware({
     target: API_BASE_DOMAIN,
     changeOrigin: true,
-    timeout: 60000,
-    proxyTimeout: 60000,
+    timeout: 120000,
+    proxyTimeout: 120000,
     pathRewrite: (path, req) => {
         // Express strips /mobile-bff/store, so path is relative (e.g., /123)
         // We need to map it to /api/v1/store-items/123
@@ -114,8 +114,8 @@ logger.info(`Creating standard proxy with base: ${API_BASE_DOMAIN}, full target:
 const standardProxy = createProxyMiddleware({
     target: API_BASE_DOMAIN, // Just the domain: https://momentum-api-vpkw.onrender.com
     changeOrigin: true,
-    timeout: 60000,
-    proxyTimeout: 60000,
+    timeout: 120000, // 120 seconds for slow Render cold starts
+    proxyTimeout: 120000,
     pathRewrite: (path, req) => {
         // Express has already stripped the mount path (/mobile-bff/auth, etc.)
         // So path is already relative (e.g., /login)
