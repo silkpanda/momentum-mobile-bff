@@ -44,6 +44,17 @@ app.get('/', (req, res) => {
     res.json({ status: 'ok', service: 'momentum-mobile-bff', version: '1.0.0' });
 });
 
+// Debug endpoint to check configuration
+app.get('/debug', (req, res) => {
+    res.json({
+        service: 'momentum-mobile-bff',
+        apiBaseUrl: API_BASE_URL,
+        port: PORT,
+        nodeEnv: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Routes
 // Custom Routes (Aggregation/Transformation)
 app.use('/mobile-bff/dashboard', dashboardRoutes);
@@ -55,6 +66,8 @@ app.use('/mobile-bff/members', membersRoutes);
 app.use('/mobile-bff/store', createProxyMiddleware({
     target: API_BASE_URL,
     changeOrigin: true,
+    timeout: 60000, // 60 seconds for Render cold starts
+    proxyTimeout: 60000,
     pathRewrite: {
         '^/mobile-bff/store': '/store-items' // Maps /mobile-bff/store/x -> /api/v1/store-items/x
     }
@@ -65,6 +78,8 @@ app.use('/mobile-bff/store', createProxyMiddleware({
 const standardProxy = createProxyMiddleware({
     target: API_BASE_URL,
     changeOrigin: true,
+    timeout: 60000, // 60 seconds for Render cold starts
+    proxyTimeout: 60000,
     pathRewrite: {
         '^/mobile-bff': '' // Maps /mobile-bff/tasks -> /api/v1/tasks (assuming API_BASE_URL includes /api/v1)
     }
