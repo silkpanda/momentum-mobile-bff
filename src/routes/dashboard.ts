@@ -43,23 +43,38 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
             storeRes.json()
         ]);
 
+        logger.info('Dashboard Data Fetch:', {
+            householdStatus: householdRes.status,
+            householdDataPreview: JSON.stringify(householdData).substring(0, 500)
+        });
+
         // Transform Household Data for UI
         let household = null;
         if (householdData.data) {
-            const rawHousehold = householdData.data as HouseholdData;
-            household = {
-                id: rawHousehold._id,
-                name: rawHousehold.householdName,
-                members: rawHousehold.memberProfiles?.map((p: MemberProfile) => ({
-                    id: p._id, // Use Profile ID for task assignment matching
-                    userId: typeof p.familyMemberId === 'object' ? p.familyMemberId._id : p.familyMemberId,
-                    firstName: p.displayName || (typeof p.familyMemberId === 'object' ? p.familyMemberId.firstName : ''),
-                    lastName: typeof p.familyMemberId === 'object' ? p.familyMemberId.lastName : '',
-                    profileColor: p.profileColor,
-                    pointsTotal: p.pointsTotal,
-                    role: p.role
-                })) || []
-            };
+            // Handle array vs single object response
+            let rawHousehold: HouseholdData;
+            if (Array.isArray(householdData.data)) {
+                rawHousehold = householdData.data[0];
+                logger.info('Household data is an array, using first item');
+            } else {
+                rawHousehold = householdData.data as HouseholdData;
+            }
+
+            if (rawHousehold) {
+                household = {
+                    id: rawHousehold._id,
+                    name: rawHousehold.householdName,
+                    members: rawHousehold.memberProfiles?.map((p: MemberProfile) => ({
+                        id: p._id, // Use Profile ID for task assignment matching
+                        userId: typeof p.familyMemberId === 'object' ? p.familyMemberId._id : p.familyMemberId,
+                        firstName: p.displayName || (typeof p.familyMemberId === 'object' ? p.familyMemberId.firstName : ''),
+                        lastName: typeof p.familyMemberId === 'object' ? p.familyMemberId.lastName : '',
+                        profileColor: p.profileColor,
+                        pointsTotal: p.pointsTotal,
+                        role: p.role
+                    })) || []
+                };
+            }
         }
 
         res.json({
