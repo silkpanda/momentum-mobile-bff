@@ -98,8 +98,12 @@ app.use('/mobile-bff/store', createProxyMiddleware({
     changeOrigin: true,
     timeout: 60000,
     proxyTimeout: 60000,
-    pathRewrite: {
-        '^/mobile-bff/store': '/api/v1/store-items' // Maps /mobile-bff/store/x -> /api/v1/store-items/x
+    pathRewrite: (path, req) => {
+        // Express strips /mobile-bff/store, so path is relative (e.g., /123)
+        // We need to map it to /api/v1/store-items/123
+        const newPath = `/api/v1/store-items${path}`;
+        logger.info(`[STORE REWRITE] Original: ${path} -> New: ${newPath}`);
+        return newPath;
     }
 }));
 
@@ -112,8 +116,13 @@ const standardProxy = createProxyMiddleware({
     changeOrigin: true,
     timeout: 60000,
     proxyTimeout: 60000,
-    pathRewrite: {
-        '^/mobile-bff': '/api/v1' // Maps /mobile-bff/auth/login -> /api/v1/auth/login
+    pathRewrite: (path, req) => {
+        // Express has already stripped the mount path (/mobile-bff/auth, etc.)
+        // So path is already relative (e.g., /login)
+        // We just need to prepend /api/v1
+        const newPath = `/api/v1${path}`;
+        logger.info(`[PATH REWRITE] Original: ${path} -> New: ${newPath}`);
+        return newPath;
     }
 });
 
