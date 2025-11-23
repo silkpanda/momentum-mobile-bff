@@ -91,7 +91,7 @@ export function populateTaskAssignments(
         }
 
         // Map each assignedTo ID to member profile details
-        const populatedAssignedTo = (task.assignedTo || [])
+        const assignments = (task.assignedTo || [])
             .map(assignedId => {
                 // Find the member profile matching this ID
                 const member = memberProfiles.find(
@@ -105,19 +105,23 @@ export function populateTaskAssignments(
                 }
 
                 // Return the populated assignment object
-                return {
+                const populated: PopulatedAssignment = {
                     _id: member._id.toString(),
                     displayName: member.displayName || 'Unknown',
                     profileColor: member.profileColor
                 };
-            })
-            .filter((assignment): assignment is PopulatedAssignment => assignment !== null);
+                return populated;
+            });
+
+        // Filter out nulls
+        const populatedAssignedTo = assignments.filter((a): a is NonNullable<typeof a> => a !== null);
 
         // Return the task with populated assignedTo
-        return {
+        const result: PopulatedTask = {
             ...task,
             assignedTo: populatedAssignedTo
-        } as PopulatedTask;
+        };
+        return result;
     });
 
     // Return in the same format as input (single or array)
