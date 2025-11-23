@@ -104,6 +104,14 @@ app.use('/mobile-bff/store', createProxyMiddleware({
         const newPath = `/api/v1/store-items${path}`;
         logger.info(`[STORE REWRITE] Original: ${path} -> New: ${newPath}`);
         return newPath;
+    },
+    onProxyReq: (proxyReq: any, req: any, res: any) => {
+        if (req.body && Object.keys(req.body).length > 0) {
+            const bodyData = JSON.stringify(req.body);
+            proxyReq.setHeader('Content-Type', 'application/json');
+            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+            proxyReq.write(bodyData);
+        }
     }
 }));
 
@@ -123,6 +131,16 @@ const standardProxy = createProxyMiddleware({
         const newPath = `/api/v1${path}`;
         logger.info(`[PATH REWRITE] Original: ${path} -> New: ${newPath}`);
         return newPath;
+    },
+    onProxyReq: (proxyReq: any, req: any, res: any) => {
+        // CRITICAL FIX: Restream parsed body
+        // express.json() consumes the stream, so we must write it back for the proxy
+        if (req.body && Object.keys(req.body).length > 0) {
+            const bodyData = JSON.stringify(req.body);
+            proxyReq.setHeader('Content-Type', 'application/json');
+            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+            proxyReq.write(bodyData);
+        }
     }
 });
 
