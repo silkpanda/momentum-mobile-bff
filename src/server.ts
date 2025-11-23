@@ -87,13 +87,15 @@ app.use('/mobile-bff/store', createProxyMiddleware({
 
 // 2. Standard Routes (Direct mapping)
 // Matches: /mobile-bff/auth, /mobile-bff/tasks, /mobile-bff/quests, /mobile-bff/meals
+logger.info(`Creating standard proxy with target: ${API_BASE_URL}`);
+
 const standardProxy = createProxyMiddleware({
     target: API_BASE_URL,
     changeOrigin: true,
     timeout: 60000, // 60 seconds for Render cold starts
     proxyTimeout: 60000,
     pathRewrite: {
-        '^/mobile-bff': '' // Maps /mobile-bff/tasks -> /api/v1/tasks (assuming API_BASE_URL includes /api/v1)
+        '^/mobile-bff': '' // Maps /mobile-bff/auth/login -> /auth/login, then target adds /api/v1
     }
 });
 
