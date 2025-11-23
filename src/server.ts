@@ -74,28 +74,31 @@ app.use('/mobile-bff/family', familyRoutes);
 app.use('/mobile-bff/members', membersRoutes);
 
 // Proxy Routes (Direct API Mapping)
+// Extract base URL without /api/v1 path for proxy target
+const API_BASE_DOMAIN = API_BASE_URL.replace('/api/v1', '');
+
 // 1. Store (Special mapping: /store -> /store-items)
 app.use('/mobile-bff/store', createProxyMiddleware({
-    target: API_BASE_URL,
+    target: API_BASE_DOMAIN,
     changeOrigin: true,
-    timeout: 60000, // 60 seconds for Render cold starts
+    timeout: 60000,
     proxyTimeout: 60000,
     pathRewrite: {
-        '^/mobile-bff/store': '/store-items' // Maps /mobile-bff/store/x -> /api/v1/store-items/x
+        '^/mobile-bff/store': '/api/v1/store-items' // Maps /mobile-bff/store/x -> /api/v1/store-items/x
     }
 }));
 
 // 2. Standard Routes (Direct mapping)
 // Matches: /mobile-bff/auth, /mobile-bff/tasks, /mobile-bff/quests, /mobile-bff/meals
-logger.info(`Creating standard proxy with target: ${API_BASE_URL}`);
+logger.info(`Creating standard proxy with base: ${API_BASE_DOMAIN}, full target: ${API_BASE_URL}`);
 
 const standardProxy = createProxyMiddleware({
-    target: API_BASE_URL,
+    target: API_BASE_DOMAIN, // Just the domain: https://momentum-api-vpkw.onrender.com
     changeOrigin: true,
-    timeout: 60000, // 60 seconds for Render cold starts
+    timeout: 60000,
     proxyTimeout: 60000,
     pathRewrite: {
-        '^/mobile-bff': '' // Maps /mobile-bff/auth/login -> /auth/login, then target adds /api/v1
+        '^/mobile-bff': '/api/v1' // Maps /mobile-bff/auth/login -> /api/v1/auth/login
     }
 });
 
