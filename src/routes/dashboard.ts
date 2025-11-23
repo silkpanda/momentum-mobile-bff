@@ -4,6 +4,7 @@ import fetch from 'node-fetch';
 import { API_BASE_URL } from '../utils/config';
 import logger from '../utils/logger';
 import AppError from '../utils/AppError';
+import { populateTaskAssignments } from '../utils/populateTaskAssignments';
 
 const router = Router();
 
@@ -50,9 +51,10 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
 
         // Transform Household Data for UI
         let household = null;
+        let rawHousehold: HouseholdData | null = null;
+
         if (householdData.data) {
             // Handle array vs single object response
-            let rawHousehold: HouseholdData;
             if (Array.isArray(householdData.data)) {
                 rawHousehold = householdData.data[0];
                 logger.info('Household data is an array, using first item');
@@ -77,11 +79,17 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
             }
         }
 
+        // Populate task assignments with member details
+        const memberProfiles = rawHousehold?.memberProfiles || [];
+        const populatedTasks = tasksData.data?.tasks
+            ? populateTaskAssignments(tasksData.data.tasks, memberProfiles)
+            : [];
+
         res.json({
             status: 'success',
             data: {
                 household: household,
-                tasks: tasksData.data?.tasks || [],
+                tasks: Array.isArray(populatedTasks) ? populatedTasks : [populatedTasks],
                 storeItems: storeData.data?.storeItems || []
             }
         });

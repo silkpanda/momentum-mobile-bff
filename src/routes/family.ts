@@ -4,6 +4,7 @@ import fetch from 'node-fetch';
 import { API_BASE_URL } from '../utils/config';
 import logger from '../utils/logger';
 import AppError from '../utils/AppError';
+import { populateTaskAssignments } from '../utils/populateTaskAssignments';
 
 const router = Router();
 
@@ -24,11 +25,19 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
             householdRes.json(), tasksRes.json(), storeRes.json()
         ]);
 
+        // Extract member profiles for task population
+        const memberProfiles = householdData.data?.memberProfiles || [];
+
+        // Populate task assignments with member details
+        const populatedTasks = tasksData.data?.tasks
+            ? populateTaskAssignments(tasksData.data.tasks, memberProfiles)
+            : [];
+
         res.json({
             status: 'success',
             data: {
-                memberProfiles: householdData.data?.memberProfiles || [],
-                tasks: tasksData.data?.tasks || [],
+                memberProfiles: memberProfiles,
+                tasks: Array.isArray(populatedTasks) ? populatedTasks : [populatedTasks],
                 storeItems: storeData.data?.storeItems || []
             }
         });
