@@ -1,12 +1,15 @@
 // src/server.ts
+// CRITICAL: Load environment variables FIRST, before any other imports
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { io as ioClient } from 'socket.io-client';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { PORT, API_BASE_URL } from './utils/config';
+import { PORT } from './utils/config';
 import logger from './utils/logger';
 import { globalErrorHandler } from './utils/errorHandler';
 
@@ -16,7 +19,16 @@ import familyRoutes from './routes/family';
 import membersRoutes from './routes/members';
 // Note: tasks, quests, store, meals, auth are now handled by proxy middleware
 
-dotenv.config();
+// Read API_BASE_URL after dotenv has loaded
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001/api/v1';
+
+// Log the configuration at startup
+console.log('='.repeat(60));
+console.log('Mobile BFF Configuration:');
+console.log(`API_BASE_URL: ${API_BASE_URL}`);
+console.log(`PORT: ${PORT}`);
+console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+console.log('='.repeat(60));
 
 const app = express();
 const httpServer = createServer(app);
