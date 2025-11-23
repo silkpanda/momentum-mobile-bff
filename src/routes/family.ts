@@ -47,4 +47,92 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
     }
 });
 
+// Create Member
+router.post('/members', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const authHeader = req.headers.authorization;
+        const { householdId, ...memberData } = req.body;
+
+        if (!authHeader) throw new AppError('No authorization header', 401);
+        if (!householdId) throw new AppError('Household ID is required', 400);
+
+        const response = await fetch(`${API_BASE_URL}/households/${householdId}/members`, {
+            method: 'POST',
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(memberData)
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new AppError(data.message || 'Failed to create member', response.status);
+
+        res.json(data);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Update Member
+router.put('/members/:memberId', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const authHeader = req.headers.authorization;
+        const { memberId } = req.params;
+        const { householdId, ...memberData } = req.body;
+
+        if (!authHeader) throw new AppError('No authorization header', 401);
+        if (!householdId) throw new AppError('Household ID is required', 400);
+
+        const response = await fetch(`${API_BASE_URL}/households/${householdId}/members/${memberId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(memberData)
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new AppError(data.message || 'Failed to update member', response.status);
+
+        res.json(data);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Delete Member
+router.delete('/members/:memberId', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const authHeader = req.headers.authorization;
+        const { memberId } = req.params;
+        const { householdId } = req.body; // householdId usually needed for sub-resource deletion logic or permission check
+
+        if (!authHeader) throw new AppError('No authorization header', 401);
+        if (!householdId) throw new AppError('Household ID is required', 400);
+
+        const response = await fetch(`${API_BASE_URL}/households/${householdId}/members/${memberId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ householdId }) // Pass it if needed by API, or just URL
+        });
+
+        if (response.status === 204) {
+            res.status(204).send();
+            return;
+        }
+
+        const data = await response.json();
+        if (!response.ok) throw new AppError(data.message || 'Failed to delete member', response.status);
+
+        res.json(data);
+    } catch (error) {
+        next(error);
+    }
+});
+
 export default router;
