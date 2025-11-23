@@ -78,9 +78,12 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
         }
 
         res.json({
-            household: household,
-            tasks: tasksData.data?.tasks || [],
-            storeItems: storeData.data?.storeItems || []
+            status: 'success',
+            data: {
+                household: household,
+                tasks: tasksData.data?.tasks || [],
+                storeItems: storeData.data?.storeItems || []
+            }
         });
     } catch (error) {
         logger.error('Dashboard BFF Error', { error });
