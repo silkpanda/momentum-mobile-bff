@@ -25,9 +25,9 @@ router.put('/restaurants/:id', (req, res) => proxy(req, res, `/meals/restaurants
 router.delete('/restaurants/:id', (req, res) => proxy(req, res, `/meals/restaurants/${req.params.id}`, 'DELETE'));
 
 // Meals (Recipes)
-router.get('/meals', (req, res) => proxy(req, res, '/meals/recipes'));
-router.post('/meals', (req, res) => proxy(req, res, '/meals/recipes', 'POST'));
-router.put('/meals/:id', (req, res) => proxy(req, res, `/meals/recipes/${req.params.id}`, 'PUT'));
-router.delete('/meals/:id', (req, res) => proxy(req, res, `/meals/recipes/${req.params.id}`, 'DELETE'));
+router.get('/recipes', (req, res) => proxy(req, res, '/meals/recipes'));
+router.post('/recipes', (req, res) => proxy(req, res, '/meals/recipes', 'POST'));
+router.put('/recipes/:id', (req, res) => proxy(req, res, `/meals/recipes/${req.params.id}`, 'PUT'));
+router.delete('/recipes/:id', (req, res) => proxy(req, res, `/meals/recipes/${req.params.id}`, 'DELETE'));
 
 export default router;
