@@ -150,6 +150,7 @@ io.on('connection', (socket) => {
 // Start server
 httpServer.listen(PORT, () => {
     logger.info(`Mobile BFF running on port ${PORT}`);
+    logger.info(`API_BASE_URL: ${API_BASE_URL}`);
     logger.info(`Health check: http://localhost:${PORT}/health`);
     logger.info('WebSocket server ready');
 });
