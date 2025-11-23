@@ -19,7 +19,12 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         });
 
         const data = await response.json();
-        res.json({ memberProfiles: data.data?.household?.memberProfiles || [] });
+        res.json({
+            status: 'success',
+            data: {
+                memberProfiles: data.data?.household?.memberProfiles || []
+            }
+        });
     } catch (error) {
         logger.error('Failed to fetch members', { error });
         next(error);

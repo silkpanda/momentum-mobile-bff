@@ -25,9 +25,12 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
         ]);
 
         res.json({
-            memberProfiles: householdData.data?.memberProfiles || [],
-            tasks: tasksData.data?.tasks || [],
-            storeItems: storeData.data?.storeItems || []
+            status: 'success',
+            data: {
+                memberProfiles: householdData.data?.memberProfiles || [],
+                tasks: tasksData.data?.tasks || [],
+                storeItems: storeData.data?.storeItems || []
+            }
         });
     } catch (error) {
         logger.error('Failed to fetch family data', { error });
