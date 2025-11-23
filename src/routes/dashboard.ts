@@ -1,20 +1,36 @@
 // src/routes/dashboard.ts
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import fetch from 'node-fetch';
 import { API_BASE_URL } from '../utils/config';
+import logger from '../utils/logger';
+import AppError from '../utils/AppError';
 
 const router = Router();
 
-router.get('/page-data', async (req: Request, res: Response) => {
+interface MemberProfile {
+    _id: string;
+    familyMemberId: { _id?: string; firstName?: string; lastName?: string } | string;
+    displayName?: string;
+    profileColor: string;
+    pointsTotal: number;
+    role: string;
+}
+
+interface HouseholdData {
+    _id: string;
+    householdName: string;
+    memberProfiles?: MemberProfile[];
+}
+
+router.get('/page-data', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const authHeader = req.headers.authorization;
 
         if (!authHeader) {
-            return res.status(401).json({ message: 'No authorization header' });
+            throw new AppError('No authorization header', 401);
         }
 
         // Fetch all data in parallel
-        // FIX: Changed /households/me to /households as per API routes
         const [householdRes, tasksRes, storeRes] = await Promise.all([
             fetch(`${API_BASE_URL}/households`, { headers: { 'Authorization': authHeader } }),
             fetch(`${API_BASE_URL}/tasks`, { headers: { 'Authorization': authHeader } }),
@@ -30,15 +46,15 @@ router.get('/page-data', async (req: Request, res: Response) => {
         // Transform Household Data for UI
         let household = null;
         if (householdData.data) {
-            const rawHousehold = householdData.data;
+            const rawHousehold = householdData.data as HouseholdData;
             household = {
                 id: rawHousehold._id,
                 name: rawHousehold.householdName,
-                members: rawHousehold.memberProfiles?.map((p: any) => ({
+                members: rawHousehold.memberProfiles?.map((p: MemberProfile) => ({
                     id: p._id, // Use Profile ID for task assignment matching
-                    userId: p.familyMemberId._id || p.familyMemberId, // Keep User ID for reference
-                    firstName: p.displayName || p.familyMemberId.firstName, // Use Display Name if available
-                    lastName: p.familyMemberId.lastName || '',
+                    userId: typeof p.familyMemberId === 'object' ? p.familyMemberId._id : p.familyMemberId,
+                    firstName: p.displayName || (typeof p.familyMemberId === 'object' ? p.familyMemberId.firstName : ''),
+                    lastName: typeof p.familyMemberId === 'object' ? p.familyMemberId.lastName : '',
                     profileColor: p.profileColor,
                     pointsTotal: p.pointsTotal,
                     role: p.role
@@ -51,9 +67,9 @@ router.get('/page-data', async (req: Request, res: Response) => {
             tasks: tasksData.data?.tasks || [],
             storeItems: storeData.data?.storeItems || []
         });
-    } catch (error: any) {
-        console.error('Dashboard BFF Error:', error);
-        res.status(500).json({ message: 'Failed to fetch dashboard data', error: error.message });
+    } catch (error) {
+        logger.error('Dashboard BFF Error', { error });
+        next(error);
     }
 });
 

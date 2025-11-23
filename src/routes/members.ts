@@ -1,23 +1,28 @@
 // src/routes/members.ts
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import fetch from 'node-fetch';
 import { API_BASE_URL } from '../utils/config';
+import logger from '../utils/logger';
+import AppError from '../utils/AppError';
 
 const router = Router();
 
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const auth = req.headers.authorization;
-        if (!auth) return res.status(401).json({ message: 'No authorization' });
+        if (!auth) {
+            throw new AppError('No authorization', 401);
+        }
 
         const response = await fetch(`${API_BASE_URL}/households/me`, {
             headers: { 'Authorization': auth }
         });
 
-        const data: any = await response.json();
+        const data = await response.json();
         res.json({ memberProfiles: data.data?.household?.memberProfiles || [] });
-    } catch (error: any) {
-        res.status(500).json({ message: 'Failed to fetch members', error: error.message });
+    } catch (error) {
+        logger.error('Failed to fetch members', { error });
+        next(error);
     }
 });
 
