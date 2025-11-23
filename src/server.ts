@@ -47,6 +47,7 @@ app.use((req, res, next) => {
         req.path.startsWith('/mobile-bff/tasks') ||
         req.path.startsWith('/mobile-bff/quests') ||
         req.path.startsWith('/mobile-bff/meals') ||
+        req.path.startsWith('/mobile-bff/households') ||
         req.path.startsWith('/mobile-bff/store')) {
         next();
     } else {
@@ -127,7 +128,7 @@ app.use('/mobile-bff/store', createProxyMiddleware({
 }));
 
 // 2. Standard Routes (Direct mapping)
-// Matches: /mobile-bff/auth, /mobile-bff/tasks, /mobile-bff/quests, /mobile-bff/meals
+// Matches: /mobile-bff/auth, /mobile-bff/tasks, /mobile-bff/quests, /mobile-bff/meals, /mobile-bff/households
 logger.info(`Creating standard proxy with base: ${API_BASE_DOMAIN}, full target: ${API_BASE_URL}`);
 
 // =============================================================================
