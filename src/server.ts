@@ -46,6 +46,21 @@ app.use((req, res, next) => {
     next();
 });
 
+// Detailed request logging for debugging proxy issues
+app.use((req, res, next) => {
+    if (req.path.startsWith('/mobile-bff/')) {
+        logger.info('='.repeat(60));
+        logger.info(`[REQUEST DETAILS]`);
+        logger.info(`  Method: ${req.method}`);
+        logger.info(`  Original URL: ${req.originalUrl}`);
+        logger.info(`  Path: ${req.path}`);
+        logger.info(`  Headers: ${JSON.stringify(req.headers, null, 2)}`);
+        logger.info(`  Body: ${JSON.stringify(req.body)}`);
+        logger.info('='.repeat(60));
+    }
+    next();
+});
+
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'momentum-mobile-bff' });
@@ -102,10 +117,40 @@ const standardProxy = createProxyMiddleware({
     }
 });
 
-app.use('/mobile-bff/auth', standardProxy);
-app.use('/mobile-bff/tasks', standardProxy);
-app.use('/mobile-bff/quests', standardProxy);
-app.use('/mobile-bff/meals', standardProxy);
+// Wrap the proxy with custom logging
+const loggedProxy = (req: any, res: any, next: any) => {
+    const originalPath = req.path;
+    const rewrittenPath = originalPath.replace(/^\/mobile-bff/, '/api/v1');
+    const targetUrl = `${API_BASE_DOMAIN}${rewrittenPath}`;
+
+    logger.info('[PROXY] About to proxy request:');
+    logger.info(`  From: ${req.method} ${originalPath}`);
+    logger.info(`  To: ${req.method} ${targetUrl}`);
+    logger.info(`  Target Domain: ${API_BASE_DOMAIN}`);
+    logger.info(`  Rewritten Path: ${rewrittenPath}`);
+
+    // Capture response
+    const originalSend = res.send;
+    const originalJson = res.json;
+
+    res.send = function (data: any) {
+        logger.info(`[PROXY] Response sent: ${res.statusCode}`);
+        return originalSend.call(this, data);
+    };
+
+    res.json = function (data: any) {
+        logger.info(`[PROXY] JSON Response sent: ${res.statusCode}`);
+        logger.info(`[PROXY] Response data: ${JSON.stringify(data).substring(0, 200)}`);
+        return originalJson.call(this, data);
+    };
+
+    standardProxy(req, res, next);
+};
+
+app.use('/mobile-bff/auth', loggedProxy);
+app.use('/mobile-bff/tasks', loggedProxy);
+app.use('/mobile-bff/quests', loggedProxy);
+app.use('/mobile-bff/meals', loggedProxy);
 
 // Error handling
 app.use(globalErrorHandler);
