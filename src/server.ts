@@ -38,7 +38,21 @@ app.use(cors({
     origin: '*', // Allow all origins for mobile development
     credentials: true
 }));
-app.use(express.json());
+
+// CRITICAL: Only parse JSON for non-proxy routes
+// Proxy routes need the raw stream, so we skip body parsing for them
+const jsonParser = express.json();
+app.use((req, res, next) => {
+    if (req.path.startsWith('/mobile-bff/auth') ||
+        req.path.startsWith('/mobile-bff/tasks') ||
+        req.path.startsWith('/mobile-bff/quests') ||
+        req.path.startsWith('/mobile-bff/meals') ||
+        req.path.startsWith('/mobile-bff/store')) {
+        next();
+    } else {
+        jsonParser(req, res, next);
+    }
+});
 
 // Request logging
 app.use((req, res, next) => {
@@ -55,7 +69,12 @@ app.use((req, res, next) => {
         logger.info(`  Original URL: ${req.originalUrl}`);
         logger.info(`  Path: ${req.path}`);
         logger.info(`  Headers: ${JSON.stringify(req.headers, null, 2)}`);
-        logger.info(`  Body: ${JSON.stringify(req.body)}`);
+        // Body might be undefined if not parsed, which is expected for proxy routes
+        if (req.body && Object.keys(req.body).length > 0) {
+            logger.info(`  Body: ${JSON.stringify(req.body)}`);
+        } else {
+            logger.info(`  Body: (raw stream)`);
+        }
         logger.info('='.repeat(60));
     }
     next();
@@ -104,14 +123,6 @@ app.use('/mobile-bff/store', createProxyMiddleware({
         const newPath = `/api/v1/store-items${path}`;
         logger.info(`[STORE REWRITE] Original: ${path} -> New: ${newPath}`);
         return newPath;
-    },
-    onProxyReq: (proxyReq: any, req: any, res: any) => {
-        if (req.body && Object.keys(req.body).length > 0) {
-            const bodyData = JSON.stringify(req.body);
-            proxyReq.setHeader('Content-Type', 'application/json');
-            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-            proxyReq.write(bodyData);
-        }
     }
 }));
 
@@ -119,42 +130,35 @@ app.use('/mobile-bff/store', createProxyMiddleware({
 // Matches: /mobile-bff/auth, /mobile-bff/tasks, /mobile-bff/quests, /mobile-bff/meals
 logger.info(`Creating standard proxy with base: ${API_BASE_DOMAIN}, full target: ${API_BASE_URL}`);
 
+// =============================================================================
 const standardProxy = createProxyMiddleware({
     target: API_BASE_DOMAIN, // Just the domain: https://momentum-api-vpkw.onrender.com
     changeOrigin: true,
     timeout: 120000, // 120 seconds for slow Render cold starts
     proxyTimeout: 120000,
     pathRewrite: (path, req) => {
-        // Express has already stripped the mount path (/mobile-bff/auth, etc.)
-        // So path is already relative (e.g., /login)
+        // Express has already stripped the mount path (/mobile-bff)
+        // So path is /auth/login, /tasks, etc.
         // We just need to prepend /api/v1
         const newPath = `/api/v1${path}`;
         logger.info(`[PATH REWRITE] Original: ${path} -> New: ${newPath}`);
         return newPath;
-    },
-    onProxyReq: (proxyReq: any, req: any, res: any) => {
-        // CRITICAL FIX: Restream parsed body
-        // express.json() consumes the stream, so we must write it back for the proxy
-        if (req.body && Object.keys(req.body).length > 0) {
-            const bodyData = JSON.stringify(req.body);
-            proxyReq.setHeader('Content-Type', 'application/json');
-            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-            proxyReq.write(bodyData);
-        }
     }
 });
 
 // Wrap the proxy with custom logging
 const loggedProxy = (req: any, res: any, next: any) => {
-    const originalPath = req.path;
-    const rewrittenPath = originalPath.replace(/^\/mobile-bff/, '/api/v1');
-    const targetUrl = `${API_BASE_DOMAIN}${rewrittenPath}`;
+    const originalPath = req.originalUrl; // Full original URL
+    const mountPath = req.baseUrl; // The mount path (e.g., /mobile-bff)
+    const relativePath = req.path; // Path relative to mount (e.g., /auth/login)
+    const targetPath = `/api/v1${relativePath}`;
+    const targetUrl = `${API_BASE_DOMAIN}${targetPath}`;
 
     logger.info('[PROXY] About to proxy request:');
-    logger.info(`  From: ${req.method} ${originalPath}`);
-    logger.info(`  To: ${req.method} ${targetUrl}`);
-    logger.info(`  Target Domain: ${API_BASE_DOMAIN}`);
-    logger.info(`  Rewritten Path: ${rewrittenPath}`);
+    logger.info(`  Original URL: ${originalPath}`);
+    logger.info(`  Mount Path: ${mountPath}`);
+    logger.info(`  Relative Path: ${relativePath}`);
+    logger.info(`  Target URL: ${targetUrl}`);
 
     // Capture response
     const originalSend = res.send;
@@ -174,16 +178,13 @@ const loggedProxy = (req: any, res: any, next: any) => {
     standardProxy(req, res, next);
 };
 
-app.use('/mobile-bff/auth', loggedProxy);
-app.use('/mobile-bff/tasks', loggedProxy);
-app.use('/mobile-bff/quests', loggedProxy);
-app.use('/mobile-bff/meals', loggedProxy);
+// Mount at /mobile-bff to catch all remaining routes (auth, tasks, quests, meals)
+// Note: Custom routes and store proxy are defined above and will take precedence
+app.use('/mobile-bff', loggedProxy);
 
 // Error handling
 app.use(globalErrorHandler);
 
-// =============================================================================
-// WEBSOCKET SETUP
 // =============================================================================
 // Create Socket.IO server for mobile clients
 const io = new Server(httpServer, {
