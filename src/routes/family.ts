@@ -26,11 +26,24 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
         ]);
 
         // Extract member profiles for task population
-        const memberProfiles = householdData.data?.memberProfiles || [];
+        const rawMemberProfiles = householdData.data?.memberProfiles || [];
+
+        // Transform member profiles to match mobile app expectations
+        const memberProfiles = rawMemberProfiles.map((p: any) => ({
+            id: p._id,
+            _id: p._id,
+            userId: typeof p.familyMemberId === 'object' ? p.familyMemberId._id : p.familyMemberId,
+            firstName: p.displayName || (typeof p.familyMemberId === 'object' ? p.familyMemberId.firstName : ''),
+            lastName: typeof p.familyMemberId === 'object' ? p.familyMemberId.lastName : '',
+            profileColor: p.profileColor,
+            pointsTotal: p.pointsTotal || 0,
+            role: p.role,
+            focusedTaskId: p.focusedTaskId
+        }));
 
         // Populate task assignments with member details
         const populatedTasks = tasksData.data?.tasks
-            ? populateTaskAssignments(tasksData.data.tasks, memberProfiles)
+            ? populateTaskAssignments(tasksData.data.tasks, rawMemberProfiles)
             : [];
 
         res.json({
