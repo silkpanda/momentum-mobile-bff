@@ -98,7 +98,7 @@ router.put('/members/:memberId', async (req: Request, res: Response, next: NextF
         if (!householdId) throw new AppError('Household ID is required', 400);
 
         const response = await fetch(`${API_BASE_URL}/households/${householdId}/members/${memberId}`, {
-            method: 'PUT',
+            method: 'PATCH',
             headers: {
                 'Authorization': authHeader,
                 'Content-Type': 'application/json'
