@@ -50,7 +50,8 @@ app.use((req, res, next) => {
         req.path.startsWith('/mobile-bff/households') ||
         req.path.startsWith('/mobile-bff/routines') ||
         req.path.startsWith('/mobile-bff/wishlist') ||
-        req.path.startsWith('/mobile-bff/store')) {
+        req.path.startsWith('/mobile-bff/store') ||
+        req.path.startsWith('/mobile-bff/pin')) {
         next();
     } else {
         jsonParser(req, res, next);
