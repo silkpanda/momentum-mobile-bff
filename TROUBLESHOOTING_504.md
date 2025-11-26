@@ -20,6 +20,7 @@ The BFF's `API_BASE_URL` environment variable is set correctly in Render (`https
 - ✅ Added 60-second timeouts to proxy middleware for Render cold starts
 - ✅ Added `/debug` endpoint to verify configuration
 - ✅ Added startup logging to show `API_BASE_URL`
+- ✅ Added automatic loop prevention if `API_BASE_URL` points to BFF itself
 
 ## Next Steps
 

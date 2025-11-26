@@ -20,7 +20,13 @@ import membersRoutes from './routes/members';
 // Note: tasks, quests, store, meals, auth are now handled by proxy middleware
 
 // Read API_BASE_URL after dotenv has loaded
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001/api/v1';
+let API_BASE_URL = process.env.API_BASE_URL || 'https://momentum-api-vpke.onrender.com/api/v1';
+
+// Safety check: Prevent infinite proxy loop if API_BASE_URL points to the BFF itself
+if (API_BASE_URL.includes('momentum-mobile-bff.onrender.com')) {
+    console.error('CRITICAL ERROR: API_BASE_URL points to the BFF itself. Falling back to default Core API URL.');
+    API_BASE_URL = 'https://momentum-api-vpke.onrender.com/api/v1';
+}
 
 // Log the configuration at startup
 console.log('='.repeat(60));
