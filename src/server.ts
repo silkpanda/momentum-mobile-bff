@@ -197,46 +197,47 @@ const io = new Server(httpServer, {
     }
 });
 
-// Connect to the main API's Socket.IO server
-const apiSocket = ioClient(API_BASE_URL.replace('/api/v1', ''), {
-    reconnection: true,
-    reconnectionDelay: 1000,
-    reconnectionAttempts: 5
-});
-
-apiSocket.on('connect', () => {
-    logger.info('Connected to API Socket.IO server');
-});
-
-apiSocket.on('disconnect', () => {
-    logger.warn('Disconnected from API Socket.IO server');
-});
-
-apiSocket.on('connect_error', (error) => {
-    logger.error('API Socket connection error', { error: error.message });
-});
-
 // Handle mobile client connections
-io.on('connection', (socket) => {
-    logger.info('Mobile client connected', { socketId: socket.id });
+io.on('connection', (clientSocket) => {
+    logger.info('Mobile client connected', { socketId: clientSocket.id });
 
-    // Forward all events from mobile client to API
-    socket.onAny((eventName, ...args) => {
-        logger.debug(`Mobile → API: ${eventName}`, { args });
-        apiSocket.emit(eventName, ...args);
+    // Create a dedicated connection to the Core API for this client
+    // This ensures that when this client joins a room (e.g. household),
+    // only this specific upstream connection receives those events.
+    const upstreamSocket = ioClient(API_BASE_URL.replace('/api/v1', ''), {
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5,
+        // Pass the auth token from the mobile client to the Core API
+        auth: {
+            token: clientSocket.handshake.auth?.token
+        }
     });
 
-    // Forward all events from API to this specific mobile client
-    const forwardToMobile = (eventName: string, ...args: unknown[]) => {
+    upstreamSocket.on('connect', () => {
+        logger.debug(`Upstream socket connected for client ${clientSocket.id}`);
+    });
+
+    upstreamSocket.on('connect_error', (err) => {
+        logger.error(`Upstream socket error for client ${clientSocket.id}:`, { error: err.message });
+    });
+
+    // Forward events: Mobile -> BFF -> Core API
+    clientSocket.onAny((eventName, ...args) => {
+        logger.debug(`Mobile → API: ${eventName}`, { args });
+        upstreamSocket.emit(eventName, ...args);
+    });
+
+    // Forward events: Core API -> BFF -> Mobile
+    upstreamSocket.onAny((eventName, ...args) => {
         logger.debug(`API → Mobile: ${eventName}`, { args });
-        socket.emit(eventName, ...args);
-    };
+        clientSocket.emit(eventName, ...args);
+    });
 
-    apiSocket.onAny(forwardToMobile);
-
-    socket.on('disconnect', () => {
-        logger.info('Mobile client disconnected', { socketId: socket.id });
-        apiSocket.offAny(forwardToMobile);
+    // Cleanup
+    clientSocket.on('disconnect', () => {
+        logger.info('Mobile client disconnected', { socketId: clientSocket.id });
+        upstreamSocket.disconnect();
     });
 });
 
