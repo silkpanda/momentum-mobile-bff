@@ -38,7 +38,8 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
             profileColor: p.profileColor,
             pointsTotal: p.pointsTotal || 0,
             role: p.role,
-            focusedTaskId: p.focusedTaskId
+            focusedTaskId: p.focusedTaskId,
+            isLinkedChild: typeof p.familyMemberId === 'object' && p.familyMemberId.linkedHouseholds && p.familyMemberId.linkedHouseholds.length > 0
         }));
 
         // Populate task assignments with member details
