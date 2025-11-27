@@ -16,6 +16,7 @@ interface MemberProfile {
     pointsTotal: number;
     role: string;
     focusedTaskId?: string;
+    isLinkedChild?: boolean;
 }
 
 interface HouseholdData {
@@ -75,7 +76,8 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
                         profileColor: p.profileColor,
                         pointsTotal: p.pointsTotal,
                         role: p.role,
-                        focusedTaskId: p.focusedTaskId
+                        focusedTaskId: p.focusedTaskId,
+                        isLinkedChild: p.isLinkedChild || false
                     })) || []
                 };
             }
