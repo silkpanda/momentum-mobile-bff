@@ -17,6 +17,7 @@ import { globalErrorHandler } from './utils/errorHandler';
 import dashboardRoutes from './routes/dashboard';
 import familyRoutes from './routes/family';
 import membersRoutes from './routes/members';
+import calendarRoutes from './routes/calendar';
 // Note: tasks, quests, store, meals, auth are now handled by proxy middleware
 
 // Read API_BASE_URL after dotenv has loaded
@@ -116,6 +117,7 @@ app.get('/debug', (req, res) => {
 app.use('/mobile-bff/dashboard', dashboardRoutes);
 app.use('/mobile-bff/family', familyRoutes);
 app.use('/mobile-bff/members', membersRoutes);
+app.use('/mobile-bff/calendar', calendarRoutes);
 
 // Proxy Routes (Direct API Mapping)
 // Extract base URL without /api/v1 path for proxy target
