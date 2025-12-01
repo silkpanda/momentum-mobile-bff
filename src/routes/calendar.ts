@@ -59,4 +59,35 @@ router.get('/google/events', async (req: Request, res: Response, next: NextFunct
     }
 });
 
+// Connect Google Calendar via native sign-in
+router.post('/google/connect', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader) {
+            throw new AppError('No authorization header', 401);
+        }
+
+        const response = await fetch(`${API_BASE_URL}/calendar/google/connect`, {
+            method: 'POST',
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(req.body),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new AppError('Failed to connect Google Calendar', response.status);
+        }
+
+        res.json(data);
+    } catch (error) {
+        logger.error('Calendar Connect BFF Error', { error });
+        next(error);
+    }
+});
+
 export default router;
