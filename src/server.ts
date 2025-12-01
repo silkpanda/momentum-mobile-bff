@@ -41,9 +41,33 @@ const app = express();
 const httpServer = createServer(app);
 
 // Middleware
+// CORS Configuration - Hardened for security
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+    : [
+        'http://localhost:8081', // Expo dev server
+        'exp://localhost:8081', // Expo Go
+        'http://localhost:19000', // Expo web
+        'http://localhost:19006', // Expo web alternative
+        'https://momentum-web.onrender.com', // Production web app
+    ];
+
 app.use(cors({
-    origin: '*', // Allow all origins for mobile development
-    credentials: true
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, Postman, etc.)
+        if (!origin) return callback(null, true);
+
+        // Check if origin is in allowed list
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            logger.warn(`Blocked CORS request from origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // CRITICAL: Only parse JSON for non-proxy routes
@@ -201,8 +225,9 @@ app.use(globalErrorHandler);
 // Create Socket.IO server for mobile clients
 const io = new Server(httpServer, {
     cors: {
-        origin: '*', // Allow all origins for mobile development
-        methods: ['GET', 'POST']
+        origin: allowedOrigins,
+        methods: ['GET', 'POST'],
+        credentials: true
     }
 });
 
