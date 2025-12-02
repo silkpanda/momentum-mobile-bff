@@ -3,6 +3,22 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Validate Required Environment Variables
+const requiredEnvVars = [
+    'API_BASE_URL'
+];
+
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+    console.error('❌ CRITICAL ERROR: Missing required environment variables:');
+    missingEnvVars.forEach(varName => {
+        console.error(`   - ${varName}`);
+    });
+    console.error('\nPlease set these variables in your .env file before starting the server.');
+    process.exit(1);
+}
+
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
