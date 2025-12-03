@@ -46,12 +46,13 @@ router.get('/google/events', async (req: Request, res: Response, next: NextFunct
             headers: { 'Authorization': authHeader }
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
-            throw new AppError('Failed to get events from API', response.status);
+            const errorText = await response.text();
+            logger.error('API Error Response', { status: response.status, body: errorText });
+            throw new AppError(`Failed to get events from API: ${errorText}`, response.status);
         }
 
+        const data = await response.json();
         res.json(data);
     } catch (error) {
         logger.error('Calendar Events BFF Error', { error });
