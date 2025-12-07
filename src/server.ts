@@ -131,6 +131,12 @@ app.use((req, res, next) => {
     next();
 });
 
+// Import rate limit protection
+import { rateLimitProtection } from './middleware/rateLimitProtection';
+
+// Apply rate limit protection to all BFF routes
+app.use('/mobile-bff', rateLimitProtection);
+
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'momentum-mobile-bff' });
