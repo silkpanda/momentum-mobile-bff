@@ -21,7 +21,8 @@ export const rateLimitProtection = (req: Request, res: Response, next: NextFunct
     const patternKey = `${clientIp}:${endpoint}`;
 
     // Whitelist frequently accessed, lightweight endpoints (Auth)
-    if (endpoint.startsWith('/mobile-bff/auth/')) {
+    // Note: Since this middleware is mounted at /mobile-bff, req.path (endpoint) is relative (e.g., /auth/google)
+    if (endpoint.startsWith('/auth/')) {
         return next();
     }
 
