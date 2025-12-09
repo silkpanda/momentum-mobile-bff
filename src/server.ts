@@ -134,8 +134,12 @@ app.use((req, res, next) => {
 // Import rate limit protection
 import { rateLimitProtection } from './middleware/rateLimitProtection';
 
-// Apply rate limit protection to all BFF routes
-app.use('/mobile-bff', rateLimitProtection);
+// TEMPORARILY DISABLED: Rate limit protection
+// The 429 errors persist even when whitelisting works, suggesting the block
+// is from Cloudflare/Render infrastructure, not our middleware.
+// Disabling to prove this hypothesis.
+// app.use('/mobile-bff', rateLimitProtection);
+logger.info('[STARTUP] Rate limit protection is DISABLED for debugging');
 
 // Health check
 app.get('/health', (req, res) => {
