@@ -34,6 +34,7 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
         }
 
         // 1. Fetch Household First (Required for Wishlist)
+        logger.info('[DashboardBFF] Fetching household...');
         const householdRes = await fetch(`${API_BASE_URL}/households`, { headers: { 'Authorization': authHeader } });
         const householdData = await householdRes.json();
 
@@ -68,8 +69,10 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
                 };
             }
         }
+        logger.info(`[DashboardBFF] Household ID resolved: ${householdId}`);
 
         // 2. Fetch Everything Else in Parallel
+        logger.info('[DashboardBFF] Starting parallel data fetch for tasks, store, quests, routines, meals, restaurants, wishlist...');
         const [
             tasksRes,
             storeRes,
@@ -88,6 +91,7 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
             // Only fetch wishlist if we have a household ID
             householdId ? fetch(`${API_BASE_URL}/wishlist/household/${householdId}`, { headers: { 'Authorization': authHeader } }) : Promise.resolve(null)
         ]);
+        logger.info('[DashboardBFF] Parallel fetch completed.');
 
         const [
             tasksData,

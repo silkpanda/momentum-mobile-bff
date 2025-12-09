@@ -16,13 +16,14 @@ const MAX_REQUESTS_PER_MINUTE = 120; // Restored to 120 after implementing unifi
  */
 export const rateLimitProtection = (req: Request, res: Response, next: NextFunction) => {
     const clientIp = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip;
-    const endpoint = req.path;
+    const endpoint = req.originalUrl;
     const cacheKey = `${clientIp}:${endpoint}:${JSON.stringify(req.body || {})}`;
     const patternKey = `${clientIp}:${endpoint}`;
 
     // Whitelist frequently accessed, lightweight endpoints (Auth)
-    // Note: Since this middleware is mounted at /mobile-bff, req.path (endpoint) is relative (e.g., /auth/google)
-    if (endpoint.startsWith('/auth/')) {
+    // Using includes to catch /mobile-bff/auth/ and any other variations
+    if (endpoint.includes('/auth/')) {
+        logger.info(`[WHITELIST] Skipping rate limit for ${endpoint}`);
         return next();
     }
 
