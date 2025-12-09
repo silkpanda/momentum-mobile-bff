@@ -20,8 +20,8 @@ export const rateLimitProtection = (req: Request, res: Response, next: NextFunct
     const cacheKey = `${clientIp}:${endpoint}:${JSON.stringify(req.body || {})}`;
     const patternKey = `${clientIp}:${endpoint}`;
 
-    // Whitelist frequently accessed, lightweight endpoints
-    if (endpoint === '/mobile-bff/auth/me') {
+    // Whitelist frequently accessed, lightweight endpoints (Auth)
+    if (endpoint.startsWith('/mobile-bff/auth/')) {
         return next();
     }
 
