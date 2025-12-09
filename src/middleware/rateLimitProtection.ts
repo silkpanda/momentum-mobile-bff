@@ -9,7 +9,7 @@ const CACHE_DURATION_MS = 5000; // 5 seconds
 // Track request patterns to detect potential issues
 const requestPatterns = new Map<string, number[]>();
 const PATTERN_WINDOW_MS = 60000; // 1 minute window
-const MAX_REQUESTS_PER_MINUTE = 120; // Increased to accommodate normal app usage (login + data fetching)
+const MAX_REQUESTS_PER_MINUTE = 120; // Restored to 120 after implementing unified data sync (should be plenty now)
 
 /**
  * Middleware to protect against excessive requests that might trigger rate limiting
