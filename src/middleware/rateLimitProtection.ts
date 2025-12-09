@@ -2,50 +2,58 @@
 import { Request, Response, NextFunction } from 'express';
 import logger from '../utils/logger';
 
-// Simple in-memory cache to deduplicate rapid identical requests
-const requestCache = new Map<string, { timestamp: number; data: any }>();
-const CACHE_DURATION_MS = 5000; // 5 seconds
-
 // Track request patterns to detect potential issues
-const requestPatterns = new Map<string, number[]>();
+// Using a Map with IP as key and an object containing per-endpoint counts
+const requestPatterns = new Map<string, { timestamps: number[]; lastReset: number }>();
 const PATTERN_WINDOW_MS = 60000; // 1 minute window
-const MAX_REQUESTS_PER_MINUTE = 120; // Restored to 120 after implementing unified data sync (should be plenty now)
+const MAX_REQUESTS_PER_MINUTE = 200; // Increased significantly - we trust our unified sync architecture
+
+/**
+ * List of path patterns to ALWAYS allow without rate limiting
+ * These are critical auth flows that should never be blocked
+ */
+const ALWAYS_ALLOWED_PATHS = [
+    '/auth/',        // All authentication routes
+    '/health',       // Health checks
+    '/debug',        // Debug endpoint
+    '/onboarding',   // Onboarding flows
+];
 
 /**
  * Middleware to protect against excessive requests that might trigger rate limiting
+ * SIMPLIFIED: Just counts requests per IP with generous limits
  */
 export const rateLimitProtection = (req: Request, res: Response, next: NextFunction) => {
-    const clientIp = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip;
+    const clientIp = String(req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip || 'unknown');
     const endpoint = req.originalUrl;
-    const cacheKey = `${clientIp}:${endpoint}:${JSON.stringify(req.body || {})}`;
-    const patternKey = `${clientIp}:${endpoint}`;
 
-    // Whitelist frequently accessed, lightweight endpoints (Auth)
-    // Using includes to catch /mobile-bff/auth/ and any other variations
-    if (endpoint.includes('/auth/')) {
-        logger.info(`[WHITELIST] Skipping rate limit for ${endpoint}`);
+    // Check whitelist FIRST - before any other processing
+    const isWhitelisted = ALWAYS_ALLOWED_PATHS.some(pattern => endpoint.includes(pattern));
+    if (isWhitelisted) {
+        logger.debug(`[WHITELIST] Allowing ${endpoint}`);
         return next();
     }
 
-    // Check for cached response (deduplication)
-    const cached = requestCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION_MS) {
-        logger.info(`[CACHE HIT] Returning cached response for ${endpoint}`);
-        return res.json(cached.data);
+    // Get or create pattern tracker for this IP
+    const now = Date.now();
+    let pattern = requestPatterns.get(clientIp);
+
+    // If no pattern exists or window expired, create fresh
+    if (!pattern || (now - pattern.lastReset) >= PATTERN_WINDOW_MS) {
+        pattern = { timestamps: [now], lastReset: now };
+        requestPatterns.set(clientIp, pattern);
+        return next();
     }
 
-    // Track request pattern
-    const now = Date.now();
-    const pattern = requestPatterns.get(patternKey) || [];
+    // Add current request timestamp
+    pattern.timestamps.push(now);
 
-    // Remove old timestamps outside the window
-    const recentRequests = pattern.filter(timestamp => (now - timestamp) < PATTERN_WINDOW_MS);
-    recentRequests.push(now);
-    requestPatterns.set(patternKey, recentRequests);
+    // Count only recent requests (within window)
+    const recentCount = pattern.timestamps.filter(t => (now - t) < PATTERN_WINDOW_MS).length;
 
-    // Check if pattern exceeds limits
-    if (recentRequests.length > MAX_REQUESTS_PER_MINUTE) {
-        logger.warn(`[RATE LIMIT] Client ${clientIp} exceeded ${MAX_REQUESTS_PER_MINUTE} requests/min for ${endpoint}`);
+    // Check if over limit
+    if (recentCount > MAX_REQUESTS_PER_MINUTE) {
+        logger.warn(`[RATE LIMIT] IP ${clientIp.substring(0, 10)}... exceeded ${MAX_REQUESTS_PER_MINUTE} requests/min`);
         return res.status(429).json({
             status: 'error',
             message: 'Too many requests. Please slow down.',
@@ -53,36 +61,23 @@ export const rateLimitProtection = (req: Request, res: Response, next: NextFunct
         });
     }
 
-    // Intercept response to cache successful results
-    const originalJson = res.json.bind(res);
-    res.json = function (data: any) {
-        if (res.statusCode === 200 && data) {
-            requestCache.set(cacheKey, { timestamp: Date.now(), data });
-
-            // Clean up old cache entries
-            setTimeout(() => {
-                requestCache.delete(cacheKey);
-            }, CACHE_DURATION_MS);
-        }
-        return originalJson(data);
-    };
-
     next();
 };
 
-// Cleanup function to prevent memory leaks
+// Cleanup function to prevent memory leaks - runs every 2 minutes
 setInterval(() => {
     const now = Date.now();
+    let cleaned = 0;
 
-    // Clean request patterns
-    for (const [key, timestamps] of requestPatterns.entries()) {
-        const recent = timestamps.filter(t => (now - t) < PATTERN_WINDOW_MS);
-        if (recent.length === 0) {
-            requestPatterns.delete(key);
-        } else {
-            requestPatterns.set(key, recent);
+    for (const [ip, pattern] of requestPatterns.entries()) {
+        // Remove entries older than 2 windows
+        if ((now - pattern.lastReset) > PATTERN_WINDOW_MS * 2) {
+            requestPatterns.delete(ip);
+            cleaned++;
         }
     }
 
-    logger.debug(`Active patterns: ${requestPatterns.size}, Cache size: ${requestCache.size}`);
-}, 60000); // Clean every minute
+    if (cleaned > 0) {
+        logger.debug(`[CLEANUP] Removed ${cleaned} stale rate limit entries`);
+    }
+}, 120000);
