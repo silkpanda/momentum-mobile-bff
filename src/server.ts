@@ -54,6 +54,10 @@ console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
 console.log('='.repeat(60));
 
 const app = express();
+// Enable trust proxy for Render/Cloudflare load balancers
+// This ensures req.ip and rate limiting work correctly
+app.set('trust proxy', 1);
+
 const httpServer = createServer(app);
 
 // Middleware
@@ -135,10 +139,10 @@ app.use((req, res, next) => {
 import { rateLimitProtection } from './middleware/rateLimitProtection';
 
 // Apply rate limit protection to all BFF routes
-// This uses a simplified, robust rate limiter with generous limits (200/min)
-// and explicit whitelisting for auth/health/debug endpoints
-app.use('/mobile-bff', rateLimitProtection);
-logger.info('[STARTUP] Rate limit protection is ENABLED (200 req/min, auth whitelisted)');
+// TEMPORARILY DISABLED: Rate limit protection is causing issues despite the whitelist.
+// We are investigating IP detection (trust proxy) issues.
+// app.use('/mobile-bff', rateLimitProtection); // Disabled for user investigation
+logger.info('[STARTUP] Rate limit protection is DISABLED for debugging');
 
 // Health check
 app.get('/health', (req, res) => {
