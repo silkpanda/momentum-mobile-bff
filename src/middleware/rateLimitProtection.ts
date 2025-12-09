@@ -20,6 +20,11 @@ export const rateLimitProtection = (req: Request, res: Response, next: NextFunct
     const cacheKey = `${clientIp}:${endpoint}:${JSON.stringify(req.body || {})}`;
     const patternKey = `${clientIp}:${endpoint}`;
 
+    // Whitelist frequently accessed, lightweight endpoints
+    if (endpoint === '/mobile-bff/auth/me') {
+        return next();
+    }
+
     // Check for cached response (deduplication)
     const cached = requestCache.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION_MS) {
