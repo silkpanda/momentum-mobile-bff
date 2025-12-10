@@ -42,7 +42,18 @@ router.get('/google/events', async (req: Request, res: Response, next: NextFunct
             throw new AppError('No authorization header', 401);
         }
 
-        const response = await fetch(`${API_BASE_URL}/calendar/google/events`, {
+        const url = new URL(`${API_BASE_URL}/calendar/google/events`);
+
+        // Forward query parameters (timeMin, timeMax)
+        if (req.query) {
+            Object.keys(req.query).forEach(key => {
+                if (req.query[key]) {
+                    url.searchParams.append(key, req.query[key] as string);
+                }
+            });
+        }
+
+        const response = await fetch(url.toString(), {
             headers: { 'Authorization': authHeader }
         });
 
