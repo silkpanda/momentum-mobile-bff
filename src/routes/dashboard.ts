@@ -72,7 +72,7 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
         logger.info(`[DashboardBFF] Household ID resolved: ${householdId}`);
 
         // 2. Fetch Everything Else in Parallel
-        logger.info('[DashboardBFF] Starting parallel data fetch for tasks, store, quests, routines, meals, restaurants, wishlist...');
+        logger.info('[DashboardBFF] Starting parallel data fetch for tasks, store, quests, routines, meals, restaurants, wishlist, events...');
         const [
             tasksRes,
             storeRes,
@@ -80,7 +80,8 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
             routinesRes,
             mealsRes,
             restaurantsRes,
-            wishlistRes
+            wishlistRes,
+            eventsRes
         ] = await Promise.all([
             fetch(`${API_BASE_URL}/tasks`, { headers: { 'Authorization': authHeader } }),
             fetch(`${API_BASE_URL}/store-items`, { headers: { 'Authorization': authHeader } }),
@@ -89,7 +90,8 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
             fetch(`${API_BASE_URL}/meals/recipes`, { headers: { 'Authorization': authHeader } }),
             fetch(`${API_BASE_URL}/meals/restaurants`, { headers: { 'Authorization': authHeader } }),
             // Only fetch wishlist if we have a household ID
-            householdId ? fetch(`${API_BASE_URL}/wishlist/household/${householdId}`, { headers: { 'Authorization': authHeader } }) : Promise.resolve(null)
+            householdId ? fetch(`${API_BASE_URL}/wishlist/household/${householdId}`, { headers: { 'Authorization': authHeader } }) : Promise.resolve(null),
+            fetch(`${API_BASE_URL}/dashboard/page-data`, { headers: { 'Authorization': authHeader } })
         ]);
         logger.info('[DashboardBFF] Parallel fetch completed.');
 
@@ -100,7 +102,8 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
             routinesData,
             mealsData,
             restaurantsData,
-            wishlistData
+            wishlistData,
+            eventsData
         ] = await Promise.all([
             tasksRes.json(),
             storeRes.json(),
@@ -108,7 +111,8 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
             routinesRes.json(),
             mealsRes.json(),
             restaurantsRes.json(),
-            wishlistRes ? wishlistRes.json() : { data: { wishlistItems: [] } }
+            wishlistRes ? wishlistRes.json() : { data: { wishlistItems: [] } },
+            eventsRes.json()
         ]);
 
         // Populations
@@ -116,6 +120,8 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
         const populatedTasks = tasksData.data?.tasks
             ? populateTaskAssignments(tasksData.data.tasks, memberProfiles)
             : [];
+
+        console.log('[DashboardBFF] Events from Core API:', eventsData.data?.events?.length || 0);
 
         res.json({
             status: 'success',
@@ -127,7 +133,8 @@ router.get('/page-data', async (req: Request, res: Response, next: NextFunction)
                 routines: routinesData.data?.routines || [],
                 meals: mealsData.data?.recipes || [],
                 restaurants: restaurantsData.data?.restaurants || [],
-                wishlistItems: wishlistData.data?.wishlistItems || []
+                wishlistItems: wishlistData.data?.wishlistItems || [],
+                events: eventsData.data?.events || []
             }
         });
     } catch (error) {
