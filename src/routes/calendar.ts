@@ -133,4 +133,66 @@ router.post('/google/connect', async (req: Request, res: Response, next: NextFun
     }
 });
 
+// Update Google Calendar Event
+router.patch('/google/events/:id', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const authHeader = req.headers.authorization;
+        const { id } = req.params;
+
+        if (!authHeader) {
+            throw new AppError('No authorization header', 401);
+        }
+
+        const response = await fetch(`${API_BASE_URL}/calendar/google/events/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(req.body),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new AppError('Failed to update event', response.status);
+        }
+
+        res.json(data);
+    } catch (error) {
+        logger.error('Update Event BFF Error', { error });
+        next(error);
+    }
+});
+
+// Delete Google Calendar Event
+router.delete('/google/events/:id', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const authHeader = req.headers.authorization;
+        const { id } = req.params;
+
+        if (!authHeader) {
+            throw new AppError('No authorization header', 401);
+        }
+
+        const response = await fetch(`${API_BASE_URL}/calendar/google/events/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': authHeader,
+            },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new AppError('Failed to delete event', response.status);
+        }
+
+        res.json(data);
+    } catch (error) {
+        logger.error('Delete Event BFF Error', { error });
+        next(error);
+    }
+});
+
 export default router;
