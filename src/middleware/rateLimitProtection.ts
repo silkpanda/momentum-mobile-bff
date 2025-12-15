@@ -19,29 +19,41 @@ const ALWAYS_ALLOWED_PATHS = [
     '/onboarding',   // Onboarding flows
 ];
 
-/**
- * Middleware to protect against excessive requests that might trigger rate limiting
- * SIMPLIFIED: Just counts requests per IP with generous limits
- */
+// Middleware to protect against excessive requests that might trigger rate limiting
+// SIMPLIFIED: Just counts requests per IP or Token with generous limits
 export const rateLimitProtection = (req: Request, res: Response, next: NextFunction) => {
-    const clientIp = String(req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip || 'unknown');
+    // Determine key: Auth Token (if present) OR IP
+    let clientKey: string;
+
+    // Check for Authorization header
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        // Use the token (last 20 chars should be unique enough and safe to log if needed)
+        // We use the token so that multiple users behind one NAT/IP don't block each other.
+        const token = authHeader.substring(7);
+        clientKey = `token:${token.substring(token.length - 20)}`;
+    } else {
+        // Fallback to IP for unauthenticated requests
+        clientKey = `ip:${String(req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip || 'unknown')}`;
+    }
+
     const endpoint = req.originalUrl;
 
     // Check whitelist FIRST - before any other processing
     const isWhitelisted = ALWAYS_ALLOWED_PATHS.some(pattern => endpoint.includes(pattern));
     if (isWhitelisted) {
-        logger.debug(`[WHITELIST] Allowing ${endpoint}`);
+        // logger.debug(`[WHITELIST] Allowing ${endpoint}`);
         return next();
     }
 
-    // Get or create pattern tracker for this IP
+    // Get or create pattern tracker for this Key
     const now = Date.now();
-    let pattern = requestPatterns.get(clientIp);
+    let pattern = requestPatterns.get(clientKey);
 
     // If no pattern exists or window expired, create fresh
     if (!pattern || (now - pattern.lastReset) >= PATTERN_WINDOW_MS) {
         pattern = { timestamps: [now], lastReset: now };
-        requestPatterns.set(clientIp, pattern);
+        requestPatterns.set(clientKey, pattern);
         return next();
     }
 
@@ -53,7 +65,7 @@ export const rateLimitProtection = (req: Request, res: Response, next: NextFunct
 
     // Check if over limit
     if (recentCount > MAX_REQUESTS_PER_MINUTE) {
-        logger.warn(`[RATE LIMIT] IP ${clientIp.substring(0, 10)}... exceeded ${MAX_REQUESTS_PER_MINUTE} requests/min`);
+        logger.warn(`[RATE LIMIT] Client ${clientKey} exceeded ${MAX_REQUESTS_PER_MINUTE} requests/min`);
         return res.status(429).json({
             status: 'error',
             message: 'Too many requests. Please slow down.',

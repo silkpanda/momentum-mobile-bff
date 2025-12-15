@@ -139,10 +139,15 @@ app.use((req, res, next) => {
 import { rateLimitProtection } from './middleware/rateLimitProtection';
 
 // Apply rate limit protection to all BFF routes
-// TEMPORARILY DISABLED: Rate limit protection is causing issues despite the whitelist.
-// We are investigating IP detection (trust proxy) issues.
-// app.use('/mobile-bff', rateLimitProtection); // Disabled for user investigation
-logger.info('[STARTUP] Rate limit protection is DISABLED for debugging');
+app.use('/mobile-bff', rateLimitProtection);
+
+// DEPRECATION WARNING: Log usage of routes that have moved to Direct Core API
+app.use((req, res, next) => {
+    if (req.path.startsWith('/mobile-bff/auth') || req.path.startsWith('/mobile-bff/tasks')) {
+        logger.warn(`[DEPRECATED] Request to ${req.path} should now go directly to Core API.`);
+    }
+    next();
+});
 
 // Health check
 app.get('/health', (req, res) => {
