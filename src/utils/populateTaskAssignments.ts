@@ -9,6 +9,7 @@
  * 
  * This utility manually maps ObjectIds to member profile details from the household data.
  */
+import { logger } from './logger';
 
 interface MemberProfile {
     _id: string;
@@ -100,7 +101,7 @@ export function populateTaskAssignments(
 
                 if (!member) {
                     // Log warning but don't fail - task might be assigned to deleted member
-                    console.warn(`[populateTaskAssignments] Member profile not found for ID: ${assignedId} in task ${task._id}`);
+                    logger.warn(`[populateTaskAssignments] Member profile not found for ID: ${assignedId} in task ${task._id}`);
                     return null;
                 }
 
