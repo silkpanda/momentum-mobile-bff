@@ -39,7 +39,7 @@ describe('Rate Limit Middleware', () => {
         // For this unit test without modifying source to export internals, 
         // we mainly verify it executes next().
 
-        rateLimitProtection(mockRequest as Request, mockResponse as Response, nextFunction);
+        rateLimitProtection(mockRequest as unknown as Request, mockResponse as Response, nextFunction);
         expect(nextFunction).toHaveBeenCalled();
 
         // Requests for User B (Same IP)
@@ -53,7 +53,7 @@ describe('Rate Limit Middleware', () => {
             originalUrl: '/mobile-bff/tasks'
         };
 
-        rateLimitProtection(mockRequestB as Request, mockResponse as Response, nextFunctionB);
+        rateLimitProtection(mockRequestB as unknown as Request, mockResponse as Response, nextFunctionB);
         expect(nextFunctionB).toHaveBeenCalled();
     });
 
@@ -65,7 +65,7 @@ describe('Rate Limit Middleware', () => {
             originalUrl: '/mobile-bff/tasks'
         };
 
-        rateLimitProtection(mockRequest as Request, mockResponse as Response, nextFunction);
+        rateLimitProtection(mockRequest as unknown as Request, mockResponse as Response, nextFunction);
         expect(nextFunction).toHaveBeenCalled();
     });
 
@@ -75,7 +75,7 @@ describe('Rate Limit Middleware', () => {
             headers: {}
         };
 
-        rateLimitProtection(mockRequest as Request, mockResponse as Response, nextFunction);
+        rateLimitProtection(mockRequest as unknown as Request, mockResponse as Response, nextFunction);
         expect(nextFunction).toHaveBeenCalled();
     });
 });
