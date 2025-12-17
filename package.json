@@ -2,12 +2,12 @@
   "name": "momentum-mobile-bff",
   "version": "1.0.0",
   "description": "Backend-for-Frontend for Momentum Mobile App",
-  "main": "dist/server.js",
+  "main": "dist/src/server.js",
   "scripts": {
     "dev": "nodemon src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
-    "verify": "npm run build && node dist/server.js",
+    "start": "node dist/src/server.js",
+    "verify": "npm run build && node dist/src/server.js",
     "test": "jest"
   },
   "keywords": [
