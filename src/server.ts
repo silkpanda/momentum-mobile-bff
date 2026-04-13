@@ -265,6 +265,16 @@ const io = new Server(httpServer, {
     }
 });
 
+// Reject socket connections that don't include an auth token before any upstream
+// connection is created. The Core API will still validate the token's signature.
+io.use((socket, next) => {
+    const token = socket.handshake.auth?.token;
+    if (!token) {
+        return next(new Error('Authentication required'));
+    }
+    next();
+});
+
 // Handle mobile client connections
 io.on('connection', (clientSocket) => {
     logger.info('Mobile client connected', { socketId: clientSocket.id });
@@ -276,7 +286,6 @@ io.on('connection', (clientSocket) => {
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionAttempts: 5,
-        // Pass the auth token from the mobile client to the Core API
         auth: {
             token: clientSocket.handshake.auth?.token
         }
@@ -288,6 +297,9 @@ io.on('connection', (clientSocket) => {
 
     upstreamSocket.on('connect_error', (err) => {
         logger.error(`Upstream socket error for client ${clientSocket.id}:`, { error: err.message });
+        // Propagate auth failures back to the mobile client so it can handle token expiry
+        clientSocket.emit('auth_error', { message: err.message });
+        clientSocket.disconnect(true);
     });
 
     // Forward events: Mobile -> BFF -> Core API
@@ -302,7 +314,7 @@ io.on('connection', (clientSocket) => {
         clientSocket.emit(eventName, ...args);
     });
 
-    // Cleanup
+    // Cleanup: disconnect upstream when mobile client leaves
     clientSocket.on('disconnect', () => {
         logger.info('Mobile client disconnected', { socketId: clientSocket.id });
         upstreamSocket.disconnect();
